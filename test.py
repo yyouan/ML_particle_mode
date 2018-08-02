@@ -34,9 +34,9 @@ def get_data():
     return data
 training = {}
 training['Rate'] = 0.1 
-training['Region'] = 0.1
+training['Region'] = 0.0
 training['Validation_split'] = 0.2
-training['Epochs'] = 10
+training['Epochs'] = 300
 training['Data'] = data[int(np.floor(data.shape[0]*training['Region'])) : int(np.floor(data.shape[0]*training['Region']) + np.floor(data.shape[0]*training['Rate']))] 
 training['BatchRate'] = 0.1
 training['BatchSize'] = int(np.floor(training['Data'].shape[0]))
@@ -63,7 +63,7 @@ input_array = training['Data'][:,:(inputLen)]
 if __name__ == "__main__": 
     print(input_array)
 
-output_index_array = [ (65-1) , (67-1)] # 65.relic 67.DM mass
+output_index_array = [ (65-1) , (21-1)] # 65.relic 67.DM mass
 raw_output_array = training['Data'][:, output_index_array]
 if __name__ == "__main__":
     print(raw_output_array)
@@ -90,7 +90,7 @@ def output_scale_recover(array):
 if __name__ == "__main__":
     main()
     model = Sequential()
-    normal = initializers.RandomNormal(mean=0.0, stddev=0.01, seed=1)
+    normal = initializers.RandomNormal(mean=0.0, stddev=0.05, seed=1)
     dense_1 = Dense(units = 10000 , input_dim = inputLen , kernel_initializer=normal,
                     bias_initializer=normal , activation = 'relu')
     DROP = Dropout(0.9)
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     training['prediction'] =  model.predict(data[-5:-1,:(inputLen)]) 
     print(training['prediction'])
     ##compile model
-    adam = optimizers.Adam(lr=0.0001, beta_1=0.5, beta_2=0.999, epsilon=None, decay=0.01, amsgrad=False)
+    adam = optimizers.Adam(lr=0.001, beta_1=0.5, beta_2=0.999, epsilon=None, decay=0.01, amsgrad=False)
     model.compile(optimizer=adam,
                 loss= 'mse',
                 metrics=['mae'])
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     training['History'] = model.fit(input_array,output_array
                                 ,validation_split = training['Validation_split']
                                 ,epochs = training['Epochs']
-                                ,batch_size=training['BatchSize'] ,verbose=1 , callbacks = [training['Callbacks']]) #verbose for show training process
+                                ,batch_size=training['BatchSize'] ,verbose=1 , callbacks = []) #verbose for show training process
 
     print("--- %s seconds ---" % (time.time() - start_time))
 
@@ -147,9 +147,9 @@ if __name__ == "__main__":
     '''
 
     #show and save result
-    training['std_prediction'] =  model.predict(data[-5:-1,:(inputLen)])
+    training['std_prediction'] =  model.predict(data[0:5,:(inputLen)])
     print(training['prediction']) 
-    training['prediction'] =  output_scale_recover( model.predict(data[-5:-1,:(inputLen)]) )
+    training['prediction'] =  output_scale_recover( model.predict(data[0:5,:(inputLen)]) )
     print(training['prediction'])
 
     # serialize model to JSON
@@ -161,3 +161,14 @@ if __name__ == "__main__":
     print("Saved model to disk")
 
     show_train_history(training['History'],'mean_absolute_error','val_mean_absolute_error')
+
+    def Plot(y_array,z_array):
+        plt.plot(y_array[:,0],y_array[:,1],"ko")
+        plt.plot(z_array[:,0],z_array[:,1],"ro")
+        plt.title('{relic to m_h}')
+        plt.xlabel('relic')
+        plt.ylabel('m_h')    
+        plt.legend(['theory','model'],loc = 'upper left')
+        plt.show()
+        
+    Plot(output_array,model.predict(input_array))
